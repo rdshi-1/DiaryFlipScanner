@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="diary_ink">#17211B</color>
+    <color name="diary_paper">#F6F1E7</color>
+    <color name="diary_green">#2F6B4F</color>
+    <color name="diary_green_dark">#1E4D38</color>
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

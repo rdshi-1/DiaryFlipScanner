@@ -1,0 +1,31 @@
+# Project status
+
+## Completed in this MVP
+
+- Camera permission and live preview.
+- Hands-free page-turn state machine.
+- Stability and sharpness checks.
+- Automatic high-resolution image capture.
+- Two-page split using the centre guide.
+- Duplicate-spread suppression.
+- Vibration/beep confirmation.
+- Session folders and page numbering.
+- Background upload and transcription queue.
+- Private token-protected transcription server.
+- Editable review and share screen.
+
+## Validation completed here
+
+- All Android XML resources parse successfully.
+- The Python backend passes Python bytecode compilation.
+- Kotlin sources were parser-checked; a full Android compile requires the Android SDK and Maven dependencies.
+
+## Not yet device-tested
+
+Camera thresholds vary by phone, lighting, distance and handwriting. The first real-device test should concentrate on:
+
+1. Whether one page turn always exceeds the motion threshold.
+2. Whether the phone focuses before the stable-frame counter expires.
+3. Whether the physical diary binding aligns with the centre crop.
+4. Whether similar-looking pages are incorrectly treated as duplicates.
+5. Transcription accuracy on the user's actual handwriting.

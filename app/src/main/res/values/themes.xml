@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.DiaryFlip" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/diary_green</item>
+        <item name="colorPrimaryVariant">@color/diary_green_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:navigationBarColor">@color/diary_ink</item>
+    </style>
+</resources>
