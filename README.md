@@ -11,6 +11,7 @@ DiaryFlip is an Android MVP designed around one interaction: mount the phone abo
 - Centre-gutter split into two page images.
 - Duplicate-spread suppression.
 - One vibration and quiet beep after each successful spread.
+- Optional continuous phone light/torch while scanning, with an on-screen toggle.
 - Background transcription queue using WorkManager.
 - Private FastAPI transcription backend using image input and structured JSON output.
 - Review screen with page image, editable transcription, save and share.
@@ -28,7 +29,7 @@ This first build assumes the diary stays in roughly the same position and that t
 4. Connect an Android phone with USB debugging enabled.
 5. Press **Run**.
 
-The project targets Android 15/API 35 and supports Android 8.0/API 26 and later.
+The project compiles against Android API 36, targets Android 15/API 35, and supports Android 8.0/API 26 and later.
 
 ## Build an APK
 
@@ -43,7 +44,7 @@ The debug APK is normally created at:
 
 ## Build without installing Android Studio
 
-A GitHub Actions workflow is included at `.github/workflows/build-apk.yml`. After pushing the folder to a GitHub repository, open **Actions**, run **Build Android APK**, and download the `DiaryFlip-debug-apk` artifact.
+A GitHub Actions workflow is included at `.github/workflows/build-apk.yml`. It installs Gradle 8.11.1 directly, builds the debug APK, and uploads it as `DiaryFlip-debug-apk`. See `GITHUB_BUILD.md` for click-by-click instructions.
 
 ## Run the transcription backend locally
 
@@ -72,10 +73,11 @@ For use away from home, deploy the `backend` folder to a HTTPS-capable container
 2. Make sure both pages fill the white guide, with the binding on the dashed centre line.
 3. Avoid glare and strong shadows near the binding.
 4. Tap **Start scanning**.
-5. Hold the first spread still until the phone vibrates.
-6. Turn one page and remove your hand.
-7. Wait for the vibration before turning the next page.
-8. Tap **Finish**, then open **Review pages**.
+5. Tap **Light off** to turn on the phone light when the room is dim. The button changes to **Light on**. Avoid using it if it creates glare on glossy pages.
+6. Hold the first spread still until the phone vibrates.
+7. Turn one page and remove your hand.
+8. Wait for the vibration before turning the next page.
+9. Tap **Finish**, then open **Review pages**. The light switches off automatically.
 
 ## Privacy
 

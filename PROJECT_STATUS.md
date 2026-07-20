@@ -9,6 +9,7 @@
 - Two-page split using the centre guide.
 - Duplicate-spread suppression.
 - Vibration/beep confirmation.
+- Optional continuous phone light with automatic switch-off when scanning finishes.
 - Session folders and page numbering.
 - Background upload and transcription queue.
 - Private token-protected transcription server.

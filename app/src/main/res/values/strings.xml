@@ -4,4 +4,7 @@
     <string name="stop_scanning">Finish</string>
     <string name="settings">Settings</string>
     <string name="review">Review pages</string>
+    <string name="light_off">Light off</string>
+    <string name="light_on">Light on</string>
+    <string name="light_unavailable">No light</string>
 </resources>

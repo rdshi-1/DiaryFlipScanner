@@ -82,6 +82,18 @@
             android:text="@string/review"
             android:textColor="@color/white"
             app:strokeColor="@color/white" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/lightButton"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:checkable="true"
+            android:minWidth="96dp"
+            android:text="@string/light_off"
+            android:textColor="@color/white"
+            app:strokeColor="@color/white" />
     </LinearLayout>
 
 </FrameLayout>

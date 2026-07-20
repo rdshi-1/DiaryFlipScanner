@@ -13,11 +13,13 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.AspectRatio
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
+import androidx.camera.core.TorchState
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import com.example.diaryflip.data.SessionRepository
@@ -37,7 +39,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var processingExecutor: ExecutorService
     private lateinit var analyzer: StabilityAnalyzer
+    private var camera: Camera? = null
     private var imageCapture: ImageCapture? = null
+    private var torchEnabled = false
     private var scanning = false
     private var sessionDirectory: File? = null
     private var capturedPages = 0
@@ -76,6 +80,10 @@ class MainActivity : AppCompatActivity() {
         binding.reviewButton.setOnClickListener {
             startActivity(Intent(this, ReviewActivity::class.java))
         }
+        binding.lightButton.setOnClickListener {
+            toggleTorch()
+        }
+        binding.lightButton.isEnabled = false
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera()
@@ -111,13 +119,26 @@ class MainActivity : AppCompatActivity() {
 
             try {
                 provider.unbindAll()
-                provider.bindToLifecycle(
+                camera = provider.bindToLifecycle(
                     this,
                     CameraSelector.DEFAULT_BACK_CAMERA,
                     preview,
                     imageCapture,
                     analysis
                 )
+
+                val activeCamera = camera ?: return@addListener
+                if (activeCamera.cameraInfo.hasFlashUnit()) {
+                    binding.lightButton.isEnabled = true
+                    activeCamera.cameraInfo.torchState.observe(this) { state ->
+                        torchEnabled = state == TorchState.ON
+                        updateTorchButton()
+                    }
+                } else {
+                    torchEnabled = false
+                    binding.lightButton.isEnabled = false
+                    binding.lightButton.text = getString(R.string.light_unavailable)
+                }
                 binding.statusText.text = "Place both diary pages inside the guide"
             } catch (error: Exception) {
                 binding.statusText.text = "Could not start camera"
@@ -156,6 +177,7 @@ class MainActivity : AppCompatActivity() {
     private fun finishScanning() {
         scanning = false
         analyzer.setEnabled(false)
+        setTorch(false)
         binding.startStopButton.text = getString(R.string.start_scanning)
         binding.settingsButton.isEnabled = true
         binding.statusText.text = if (capturedPages == 0) {
@@ -264,6 +286,44 @@ class MainActivity : AppCompatActivity() {
         vibrator.vibrate(VibrationEffect.createOneShot(70, VibrationEffect.DEFAULT_AMPLITUDE))
     }
 
+    private fun toggleTorch() {
+        val activeCamera = camera
+        if (activeCamera == null) {
+            Toast.makeText(this, "Camera is still starting.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!activeCamera.cameraInfo.hasFlashUnit()) {
+            Toast.makeText(this, "This phone camera has no usable light.", Toast.LENGTH_SHORT).show()
+            return
+        }
+        setTorch(!torchEnabled)
+    }
+
+    private fun setTorch(enabled: Boolean) {
+        val activeCamera = camera ?: return
+        if (!activeCamera.cameraInfo.hasFlashUnit()) return
+
+        val request = activeCamera.cameraControl.enableTorch(enabled)
+        request.addListener({
+            try {
+                request.get()
+            } catch (error: Exception) {
+                Toast.makeText(
+                    this,
+                    error.message ?: "Could not change the camera light.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
+    private fun updateTorchButton() {
+        binding.lightButton.text = getString(
+            if (torchEnabled) R.string.light_on else R.string.light_off
+        )
+        binding.lightButton.isChecked = torchEnabled
+    }
+
     private fun renderStatus(status: StabilityAnalyzer.ScanStatus) {
         if (!scanning || captureInProgress.get()) return
         binding.statusText.text = when (status) {
@@ -276,6 +336,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        setTorch(false)
         super.onDestroy()
         analyzer.setEnabled(false)
         cameraExecutor.shutdown()
