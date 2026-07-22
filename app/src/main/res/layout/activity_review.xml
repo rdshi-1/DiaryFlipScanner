@@ -11,7 +11,10 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="16dp">
+        android:paddingStart="16dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="4dp">
 
         <TextView
             android:layout_width="0dp"
@@ -37,17 +40,42 @@
             app:backgroundTint="@color/diary_green" />
     </LinearLayout>
 
-    <ScrollView
+    <TextView
+        android:id="@+id/reorderHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:text="Hold Move and drag a page up or down. Page numbers update automatically."
+        android:textColor="@color/diary_ink"
+        android:textSize="15sp" />
+
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <LinearLayout
-            android:id="@+id/pagesContainer"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/pagesList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="16dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="24dp" />
+
+        <TextView
+            android:id="@+id/emptyMessage"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp" />
-    </ScrollView>
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:padding="24dp"
+            android:textColor="@color/diary_ink"
+            android:textSize="18sp"
+            android:visibility="gone" />
+    </FrameLayout>
 
 </LinearLayout>

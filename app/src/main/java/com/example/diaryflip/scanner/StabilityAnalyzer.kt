@@ -15,7 +15,8 @@ class StabilityAnalyzer(
         PAGE_TURNING,
         HOLD_STILL,
         IMPROVING_FOCUS,
-        READY_TO_CAPTURE
+        READY_TO_CAPTURE,
+        WAITING_FOR_NEXT_PAGE
     }
 
     private var previousSample: IntArray? = null
@@ -53,6 +54,7 @@ class StabilityAnalyzer(
         } else {
             firstCapture = false
             captureArmed = false
+            onStatus(ScanStatus.WAITING_FOR_NEXT_PAGE)
         }
     }
 
@@ -77,6 +79,16 @@ class StabilityAnalyzer(
                 stableFrames = 0
                 if (!firstCapture) captureArmed = true
                 onStatus(ScanStatus.PAGE_TURNING)
+                return
+            }
+
+            // After a successful capture, keep a clear confirmation on screen until
+            // the user physically starts turning to the next spread. This prevents
+            // ordinary stable frames from immediately replacing "Next page" with
+            // another "Hold still" message.
+            if (!firstCapture && !captureArmed) {
+                stableFrames = 0
+                onStatus(ScanStatus.WAITING_FOR_NEXT_PAGE)
                 return
             }
 

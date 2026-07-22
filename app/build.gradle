@@ -11,8 +11,8 @@ android {
         applicationId 'com.example.diaryflip'
         minSdk 26
         targetSdk 35
-        versionCode 2
-        versionName '0.2.0'
+        versionCode 4
+        versionName '0.4.0'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
@@ -45,6 +45,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.activity:activity-ktx:1.10.1'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.9.1'
+    implementation 'androidx.recyclerview:recyclerview:1.4.0'
 
     def camerax_version = '1.6.1'
     implementation "androidx.camera:camera-core:$camerax_version"

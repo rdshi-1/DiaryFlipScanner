@@ -14,7 +14,7 @@ DiaryFlip is an Android MVP designed around one interaction: mount the phone abo
 - Optional continuous phone light/torch while scanning, with an on-screen toggle.
 - Background transcription queue using WorkManager.
 - Private FastAPI transcription backend using image input and structured JSON output.
-- Review screen with page image, editable transcription, save and share.
+- Review screen with numbered pages, editable transcription, delete, drag-to-reorder, save and share.
 - Captures still work when transcription is not configured.
 
 ## Important MVP limitation
@@ -78,6 +78,7 @@ For use away from home, deploy the `backend` folder to a HTTPS-capable container
 7. Turn one page and remove your hand.
 8. Wait for the vibration before turning the next page.
 9. Tap **Finish**, then open **Review pages**. The light switches off automatically.
+10. In Review, hold **Move** and drag pages into order, or tap **Delete** to remove mistakes. Page numbers and shared text update automatically.
 
 ## Privacy
 
@@ -108,3 +109,7 @@ Duplicate sensitivity is in `MainActivity.kt` at `duplicateDistance < 2.2`.
 - Retry and progress indicators for each transcription.
 - Export directly to DOCX and searchable PDF.
 - On-device OCR fallback for offline use.
+
+## Version 0.4 scanning feedback
+
+After each successful two-page capture, the main status changes to **Next page ✓** and remains there until the app detects that the next page turn has begun. The page counter continues to show the total number of saved pages.

@@ -82,6 +82,9 @@ class TranscriptionWorker(
                         }
                     }
                 }
+                // A page may have been deleted from Review while this request was running.
+                // Do not recreate sidecar files for a deleted page.
+                if (!pageFile.exists()) return@withContext Result.success()
                 SessionRepository.transcriptFile(pageFile).writeText(output)
                 File(pageFile.parentFile, pageFile.nameWithoutExtension + ".json").writeText(json.toString(2))
                 Result.success()

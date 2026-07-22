@@ -262,7 +262,7 @@ class MainActivity : AppCompatActivity() {
             analyzer.captureCompleted(true)
             runOnUiThread {
                 binding.pageCountText.text = "$capturedPages pages"
-                binding.statusText.text = "Captured pages $leftNumber–${leftNumber + 1} ✓  Turn the page"
+                binding.statusText.text = "Next page ✓"
                 acknowledgeCapture()
             }
         } catch (error: Exception) {
@@ -332,6 +332,7 @@ class MainActivity : AppCompatActivity() {
             StabilityAnalyzer.ScanStatus.HOLD_STILL -> "Hold still…"
             StabilityAnalyzer.ScanStatus.IMPROVING_FOCUS -> "Waiting for a sharper image…"
             StabilityAnalyzer.ScanStatus.READY_TO_CAPTURE -> "Capturing…"
+            StabilityAnalyzer.ScanStatus.WAITING_FOR_NEXT_PAGE -> "Next page ✓"
         }
     }
 
