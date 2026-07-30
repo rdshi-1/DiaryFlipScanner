@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/cropHelpText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="If the centre split is slightly off, trim the page edges until the page looks right."
+            android:textColor="@color/diary_ink"
+            android:textSize="16sp" />
+
+        <ImageView
+            android:id="@+id/cropPreviewImage"
+            android:layout_width="match_parent"
+            android:layout_height="320dp"
+            android:layout_marginTop="14dp"
+            android:adjustViewBounds="true"
+            android:background="#11000000"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:id="@+id/leftTrimLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Trim left edge: 0%"
+            android:textColor="@color/diary_ink"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/leftTrimSeek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="40" />
+
+        <TextView
+            android:id="@+id/rightTrimLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Trim right edge: 0%"
+            android:textColor="@color/diary_ink"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/rightTrimSeek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="40" />
+
+        <TextView
+            android:id="@+id/topTrimLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Trim top edge: 0%"
+            android:textColor="@color/diary_ink"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/topTrimSeek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="25" />
+
+        <TextView
+            android:id="@+id/bottomTrimLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Trim bottom edge: 0%"
+            android:textColor="@color/diary_ink"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/bottomTrimSeek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="25" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/resetCropButton"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Reset crop" />
+
+    </LinearLayout>
+</ScrollView>

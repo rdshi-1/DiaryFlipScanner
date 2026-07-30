@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Move the yellow line to the diary centre. The shaded strip is omitted from both pages."
+            android:textColor="@color/diary_ink"
+            android:textSize="16sp" />
+
+        <com.example.diaryflip.ui.SplitPreviewView
+            android:id="@+id/splitPreview"
+            android:layout_width="match_parent"
+            android:layout_height="330dp"
+            android:layout_marginTop="14dp"
+            android:background="#22000000" />
+
+        <TextView
+            android:id="@+id/splitPositionLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Centre position: 50%"
+            android:textColor="@color/diary_ink"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/splitPositionSeek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="40"
+            android:progress="20" />
+
+        <TextView
+            android:id="@+id/gutterWidthLabel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Omit centre gutter: 1.8%"
+            android:textColor="@color/diary_ink"
+            android:textStyle="bold" />
+
+        <SeekBar
+            android:id="@+id/gutterWidthSeek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="80"
+            android:progress="18" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/resetSplitButton"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Reset split" />
+
+    </LinearLayout>
+</ScrollView>

@@ -63,9 +63,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="Keep original two-page spread photos"
+            android:text="Keep original spreads for re-splitting (required)"
             android:textColor="@color/diary_ink"
-            android:checked="true" />
+            android:checked="true"
+            android:enabled="false" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/saveSettingsButton"

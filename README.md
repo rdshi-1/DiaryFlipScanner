@@ -14,12 +14,13 @@ DiaryFlip is an Android MVP designed around one interaction: mount the phone abo
 - Optional continuous phone light/torch while scanning, with an on-screen toggle.
 - Background transcription queue using WorkManager.
 - Private FastAPI transcription backend using image input and structured JSON output.
-- Review screen with numbered pages, editable transcription, delete, drag-to-reorder, save and share.
+- Review screen with numbered pages, editable transcription, delete, drag-to-reorder, manual edge cropping, original-spread re-splitting, save and share.
+- One-tap PDF export with one corrected page per PDF page, following the saved review order.
 - Captures still work when transcription is not configured.
 
 ## Important MVP limitation
 
-This first build assumes the diary stays in roughly the same position and that the centre binding is close to the centre guide. It crops the two pages at the centre rather than performing full curved-page dewarping. Use a phone stand, even lighting, landscape orientation and a dark surface beneath the diary.
+The automatic first split still starts near the centre of the photograph, but the retained original spread can now be re-split from Review by moving the centre line and changing the omitted gutter width. Full curved-page dewarping is not yet included. Use a phone stand, even lighting, landscape orientation and a dark surface beneath the diary.
 
 ## Open the Android project
 
@@ -79,6 +80,8 @@ For use away from home, deploy the `backend` folder to a HTTPS-capable container
 8. Wait for the vibration before turning the next page.
 9. Tap **Finish**, then open **Review pages**. The light switches off automatically.
 10. In Review, hold **Move** and drag pages into order, or tap **Delete** to remove mistakes. Page numbers and shared text update automatically.
+11. Tap **Re-split spread** to correct the diary centre from the original two-page photograph, or **Adjust crop** to trim one page.
+12. Tap **Export PDF** to create and share a PDF in the current reviewed order.
 
 ## Privacy
 
@@ -107,9 +110,14 @@ Duplicate sensitivity is in `MainActivity.kt` at `duplicateDistance < 2.2`.
 - Curved-page dewarping near thick diary bindings.
 - Detect blank first/last sides rather than treating every spread as two pages.
 - Retry and progress indicators for each transcription.
-- Export directly to DOCX and searchable PDF.
+- Export directly to DOCX and add an optional searchable text layer to PDFs.
 - On-device OCR fallback for offline use.
 
 ## Version 0.4 scanning feedback
 
 After each successful two-page capture, the main status changes to **Next page ✓** and remains there until the app detects that the next page turn has begun. The page counter continues to show the total number of saved pages.
+
+
+## Version 0.6 review and export
+
+Each original two-page photograph is retained automatically. From either page in Review, **Re-split spread** opens the original photograph with a movable centre line and adjustable gutter width; saving refreshes both existing page images without restoring a page that was previously deleted. **Export PDF** creates an A4 PDF containing the corrected page images in the current saved order and opens Android's save/share chooser.

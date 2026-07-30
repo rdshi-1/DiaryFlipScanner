@@ -235,7 +235,7 @@ class MainActivity : AppCompatActivity() {
                 spreadFile = spreadFile,
                 outputDirectory = session,
                 leftPageNumber = leftNumber,
-                keepSpread = SessionRepository.keepSpread(this)
+                keepSpread = true
             )
 
             val duplicateDistance = lastFingerprint?.distance(result.fingerprint)

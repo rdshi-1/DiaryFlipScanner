@@ -30,3 +30,10 @@ Camera thresholds vary by phone, lighting, distance and handwriting. The first r
 3. Whether the physical diary binding aligns with the centre crop.
 4. Whether similar-looking pages are incorrectly treated as duplicates.
 5. Transcription accuracy on the user's actual handwriting.
+
+
+## v0.6 additions
+- Original spreads retained for later centre correction.
+- Review-page re-splitting from the original two-page image.
+- Adjustable split position and omitted gutter width.
+- A4 PDF export in reviewed page order using Android PdfDocument and FileProvider.

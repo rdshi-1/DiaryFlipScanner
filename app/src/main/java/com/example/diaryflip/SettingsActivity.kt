@@ -16,7 +16,7 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.endpointInput.setText(SessionRepository.endpoint(this))
         binding.tokenInput.setText(SessionRepository.token(this))
-        binding.keepSpreadSwitch.isChecked = SessionRepository.keepSpread(this)
+        binding.keepSpreadSwitch.isChecked = true
 
         binding.saveSettingsButton.setOnClickListener {
             val endpoint = binding.endpointInput.text?.toString().orEmpty()
@@ -28,7 +28,7 @@ class SettingsActivity : AppCompatActivity() {
                 this,
                 endpoint,
                 binding.tokenInput.text?.toString().orEmpty(),
-                binding.keepSpreadSwitch.isChecked
+                true
             )
             Toast.makeText(this, "Settings saved", Toast.LENGTH_SHORT).show()
             finish()

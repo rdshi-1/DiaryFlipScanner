@@ -15,22 +15,73 @@ object ImageSplitter {
         val rightPage: File
     )
 
+    data class ResplitResult(
+        val leftPage: File,
+        val rightPage: File
+    )
+
     fun splitSpread(
         spreadFile: File,
         outputDirectory: File,
         leftPageNumber: Int,
         keepSpread: Boolean
     ): SplitResult {
-        val raw = BitmapFactory.decodeFile(spreadFile.absolutePath)
-            ?: error("Could not decode captured image")
-        val bitmap = rotateFromExif(raw, spreadFile)
-        if (bitmap !== raw) raw.recycle()
-
+        val bitmap = loadOrientedBitmap(spreadFile)
         val fingerprint = DocumentFingerprint.from(bitmap)
-        val gutter = (bitmap.width * 0.018f).toInt().coerceAtLeast(4)
-        val centre = bitmap.width / 2
-        val leftWidth = (centre - gutter).coerceAtLeast(1)
-        val rightStart = (centre + gutter).coerceAtMost(bitmap.width - 1)
+        val result = saveSplitPages(
+            bitmap = bitmap,
+            outputDirectory = outputDirectory,
+            leftPageNumber = leftPageNumber,
+            splitFraction = 0.5f,
+            gutterFraction = 0.018f
+        )
+        bitmap.recycle()
+        // Original spreads are retained so the centre split can be corrected later in Review.
+        return SplitResult(fingerprint, result.leftPage, result.rightPage)
+    }
+
+    /**
+     * Recreates the two page images from the retained original spread. The split and gutter are
+     * expressed as fractions of the full spread width.
+     */
+    fun resplitSpread(
+        spreadFile: File,
+        outputDirectory: File,
+        leftPageNumber: Int,
+        splitFraction: Float,
+        gutterFraction: Float
+    ): ResplitResult {
+        val bitmap = loadOrientedBitmap(spreadFile)
+        val result = saveSplitPages(
+            bitmap = bitmap,
+            outputDirectory = outputDirectory,
+            leftPageNumber = leftPageNumber,
+            splitFraction = splitFraction.coerceIn(0.30f, 0.70f),
+            gutterFraction = gutterFraction.coerceIn(0f, 0.08f)
+        )
+        bitmap.recycle()
+        return result
+    }
+
+    fun loadOrientedBitmap(file: File): Bitmap {
+        val raw = BitmapFactory.decodeFile(file.absolutePath)
+            ?: error("Could not decode captured image")
+        val bitmap = rotateFromExif(raw, file)
+        if (bitmap !== raw) raw.recycle()
+        return bitmap
+    }
+
+    private fun saveSplitPages(
+        bitmap: Bitmap,
+        outputDirectory: File,
+        leftPageNumber: Int,
+        splitFraction: Float,
+        gutterFraction: Float
+    ): ResplitResult {
+        val centre = (bitmap.width * splitFraction).toInt().coerceIn(1, bitmap.width - 1)
+        val halfGutter = (bitmap.width * gutterFraction / 2f).toInt().coerceAtLeast(0)
+        val leftWidth = (centre - halfGutter).coerceAtLeast(1)
+        val rightStart = (centre + halfGutter).coerceAtMost(bitmap.width - 1)
         val rightWidth = (bitmap.width - rightStart).coerceAtLeast(1)
 
         val left = Bitmap.createBitmap(bitmap, 0, 0, leftWidth, bitmap.height)
@@ -43,10 +94,7 @@ object ImageSplitter {
 
         left.recycle()
         right.recycle()
-        bitmap.recycle()
-        if (!keepSpread) spreadFile.delete()
-
-        return SplitResult(fingerprint, leftFile, rightFile)
+        return ResplitResult(leftFile, rightFile)
     }
 
     private fun rotateFromExif(bitmap: Bitmap, file: File): Bitmap {
