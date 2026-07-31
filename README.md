@@ -121,3 +121,10 @@ After each successful two-page capture, the main status changes to **Next page â
 ## Version 0.6 review and export
 
 Each original two-page photograph is retained automatically. From either page in Review, **Re-split spread** opens the original photograph with a movable centre line and adjustable gutter width; saving refreshes both existing page images without restoring a page that was previously deleted. **Export PDF** creates an A4 PDF containing the corrected page images in the current saved order and opens Android's save/share chooser.
+
+
+## Version 0.7 PDF export fix
+
+PDF export now opens Android's standard **Create document** screen so you choose the file name and destination directly. The exporter embeds the saved JPEG pages into the PDF one at a time instead of decoding the whole diary into memory. This avoids the FileProvider hand-off and high-memory export path used in version 0.6.
+
+To export: open **Review pages**, tap **Export PDF**, choose a folder, then tap **Save**. The PDF uses the current reviewed page order.

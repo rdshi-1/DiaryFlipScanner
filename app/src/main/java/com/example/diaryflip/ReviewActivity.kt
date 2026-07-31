@@ -1,24 +1,20 @@
 package com.example.diaryflip
 
 import android.content.Intent
+import android.net.Uri
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Color
-import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.RectF
-import android.graphics.pdf.PdfDocument
 import android.os.Bundle
-import android.os.Environment
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.FileProvider
 import androidx.core.widget.doAfterTextChanged
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -28,6 +24,7 @@ import com.example.diaryflip.databinding.ActivityReviewBinding
 import com.example.diaryflip.databinding.DialogAdjustCropBinding
 import com.example.diaryflip.databinding.DialogAdjustSplitBinding
 import com.example.diaryflip.databinding.ItemReviewPageBinding
+import com.example.diaryflip.export.StreamingJpegPdfWriter
 import com.example.diaryflip.network.TranscriptionWorker
 import com.example.diaryflip.scanner.ImageSplitter
 import java.io.File
@@ -35,13 +32,18 @@ import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.min
 
 class ReviewActivity : AppCompatActivity() {
     private lateinit var binding: ActivityReviewBinding
     private lateinit var pagesAdapter: PagesAdapter
     private lateinit var itemTouchHelper: ItemTouchHelper
     private var session: File? = null
+
+    private val createPdfLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri ->
+        if (uri != null) writePdfToUri(uri)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -408,7 +410,20 @@ class ReviewActivity : AppCompatActivity() {
         val activeSession = session ?: return
         pagesAdapter.saveAllDrafts()
         saveCurrentOrder()
+
         val pages = SessionRepository.pageFiles(activeSession)
+        if (pages.isEmpty()) {
+            Toast.makeText(this, "There are no pages to export", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.UK).format(Date())
+        createPdfLauncher.launch("DiaryFlip_$timestamp.pdf")
+    }
+
+    private fun writePdfToUri(uri: Uri) {
+        val activeSession = SessionRepository.currentSession(this)
+        val pages = activeSession?.let(SessionRepository::pageFiles).orEmpty()
         if (pages.isEmpty()) {
             Toast.makeText(this, "There are no pages to export", Toast.LENGTH_SHORT).show()
             return
@@ -418,74 +433,33 @@ class ReviewActivity : AppCompatActivity() {
         binding.exportPdfButton.text = "Creating PDF…"
 
         Thread {
-            var outputFile: File? = null
             try {
-                val exportRoot = File(
-                    getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS),
-                    "DiaryFlipExports"
-                ).apply { mkdirs() }
-                val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.UK).format(Date())
-                val pdfFile = File(exportRoot, "DiaryFlip_$timestamp.pdf")
-                outputFile = pdfFile
-
-                val pdf = PdfDocument()
-                try {
-                    pages.forEachIndexed { index, pageFile ->
-                        val bitmap = decodeForPdf(pageFile)
-                            ?: error("Could not read ${pageFile.name}")
-                        val pageInfo = PdfDocument.PageInfo.Builder(
-                            PDF_PAGE_WIDTH,
-                            PDF_PAGE_HEIGHT,
-                            index + 1
-                        ).create()
-                        val pdfPage = pdf.startPage(pageInfo)
-                        val canvas = pdfPage.canvas
-                        canvas.drawColor(Color.WHITE)
-
-                        val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                            color = Color.DKGRAY
-                            textSize = 12f
-                        }
-                        canvas.drawText("Page ${index + 1}", PDF_MARGIN, 24f, labelPaint)
-
-                        val available = RectF(
-                            PDF_MARGIN,
-                            38f,
-                            PDF_PAGE_WIDTH - PDF_MARGIN,
-                            PDF_PAGE_HEIGHT - PDF_MARGIN
-                        )
-                        val scale = min(
-                            available.width() / bitmap.width,
-                            available.height() / bitmap.height
-                        )
-                        val imageWidth = bitmap.width * scale
-                        val imageHeight = bitmap.height * scale
-                        val destination = RectF(
-                            available.centerX() - imageWidth / 2f,
-                            available.centerY() - imageHeight / 2f,
-                            available.centerX() + imageWidth / 2f,
-                            available.centerY() + imageHeight / 2f
-                        )
-                        canvas.drawBitmap(bitmap, null, destination, Paint(Paint.ANTI_ALIAS_FLAG))
-                        pdf.finishPage(pdfPage)
-                        bitmap.recycle()
-                    }
-
-                    FileOutputStream(pdfFile).use(pdf::writeTo)
-                } finally {
-                    pdf.close()
-                }
+                contentResolver.openOutputStream(uri, "w")?.use { output ->
+                    StreamingJpegPdfWriter.write(pages, output)
+                } ?: error("Android could not open the selected PDF file")
 
                 runOnUiThread {
-                    binding.exportPdfButton.isEnabled = true
-                    binding.exportPdfButton.text = "Export PDF"
-                    sharePdf(pdfFile)
+                    restorePdfButton()
+                    Toast.makeText(
+                        this,
+                        "PDF saved successfully",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } catch (error: OutOfMemoryError) {
+                deleteFailedPdf(uri)
+                runOnUiThread {
+                    restorePdfButton()
+                    Toast.makeText(
+                        this,
+                        "The phone ran out of memory while exporting. No PDF was saved.",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             } catch (error: Exception) {
-                outputFile?.delete()
+                deleteFailedPdf(uri)
                 runOnUiThread {
-                    binding.exportPdfButton.isEnabled = true
-                    binding.exportPdfButton.text = "Export PDF"
+                    restorePdfButton()
                     Toast.makeText(
                         this,
                         error.message ?: "Could not create the PDF",
@@ -496,32 +470,19 @@ class ReviewActivity : AppCompatActivity() {
         }.start()
     }
 
-    private fun decodeForPdf(file: File): Bitmap? {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(file.absolutePath, bounds)
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
-
-        var sampleSize = 1
-        while (bounds.outWidth / sampleSize > 2400 || bounds.outHeight / sampleSize > 3200) {
-            sampleSize *= 2
+    private fun deleteFailedPdf(uri: Uri) {
+        try {
+            contentResolver.delete(uri, null, null)
+        } catch (_: Exception) {
+            // Some document providers do not allow deletion; leaving an empty file is safer than crashing.
         }
-        val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
-        return BitmapFactory.decodeFile(file.absolutePath, options)
     }
 
-    private fun sharePdf(pdfFile: File) {
-        val uri = FileProvider.getUriForFile(
-            this,
-            "${BuildConfig.APPLICATION_ID}.fileprovider",
-            pdfFile
-        )
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "application/pdf"
-            putExtra(Intent.EXTRA_SUBJECT, "DiaryFlip diary PDF")
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    private fun restorePdfButton() {
+        if (!isFinishing && !isDestroyed) {
+            binding.exportPdfButton.isEnabled = true
+            binding.exportPdfButton.text = "Export PDF"
         }
-        startActivity(Intent.createChooser(intent, "Save or share diary PDF"))
     }
 
     private fun saveCurrentOrder() {
@@ -733,8 +694,5 @@ class ReviewActivity : AppCompatActivity() {
 
     private companion object {
         const val PAGE_NUMBER_PAYLOAD = "page_number"
-        const val PDF_PAGE_WIDTH = 595
-        const val PDF_PAGE_HEIGHT = 842
-        const val PDF_MARGIN = 28f
     }
 }

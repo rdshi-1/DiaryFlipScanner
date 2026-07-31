@@ -36,4 +36,10 @@ Camera thresholds vary by phone, lighting, distance and handwriting. The first r
 - Original spreads retained for later centre correction.
 - Review-page re-splitting from the original two-page image.
 - Adjustable split position and omitted gutter width.
-- A4 PDF export in reviewed page order using Android PdfDocument and FileProvider.
+- A4 PDF export in reviewed page order. Version 0.7 uses Android Create Document and a streaming JPEG-to-PDF writer.
+
+
+## v0.7
+- Replaced crash-prone FileProvider PDF sharing with Android Create Document.
+- Added streaming JPEG-to-PDF generation with bounded memory use.
+- Added clear failure messages and cleanup of incomplete PDF files.
