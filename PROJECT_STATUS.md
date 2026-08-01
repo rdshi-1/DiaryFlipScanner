@@ -1,3 +1,7 @@
+
+## v0.8 session behaviour
+
+Start/Stop now pauses and resumes a single current diary. A separate New diary action creates the next folder and keeps prior diary files intact. Page and spread numbering continue safely after pauses and deletions.
 # Project status
 
 ## Completed in this MVP

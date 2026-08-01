@@ -14,19 +14,44 @@ object SessionRepository {
     const val KEY_KEEP_SPREAD = "keep_spread"
     const val KEY_TOKEN = "server_token"
 
+    fun diaryRoot(context: Context): File =
+        File(context.getExternalFilesDir(null), "DiaryFlip").apply { mkdirs() }
+
+    /**
+     * Creates a completely new diary folder and makes it the current diary.
+     * This should only be called from the explicit New diary action.
+     */
     fun startNewSession(context: Context): File {
-        val root = File(context.getExternalFilesDir(null), "DiaryFlip")
-        root.mkdirs()
-        val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.UK).format(Date())
-        val session = File(root, "diary_$stamp")
+        val root = diaryRoot(context)
+
+        val baseStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.UK).format(Date())
+        var suffix = 0
+        var session: File
+        do {
+            val name = if (suffix == 0) "diary_$baseStamp" else "diary_${baseStamp}_$suffix"
+            session = File(root, name)
+            suffix += 1
+        } while (session.exists())
+
         session.mkdirs()
-        prefs(context).edit().putString(KEY_CURRENT_SESSION, session.absolutePath).apply()
+        setCurrentSession(context, session)
         return session
     }
 
+    /**
+     * Returns the current diary, creating the first diary only when none exists yet.
+     * Starting and stopping scanning must keep returning this same folder.
+     */
+    fun getOrCreateCurrentSession(context: Context): File =
+        currentSession(context) ?: startNewSession(context)
+
     fun currentSession(context: Context): File? {
         val path = prefs(context).getString(KEY_CURRENT_SESSION, null) ?: return null
-        return File(path).takeIf { it.exists() }
+        return File(path).takeIf { it.exists() && it.isDirectory }
+    }
+
+    fun setCurrentSession(context: Context, session: File?) {
+        prefs(context).edit().putString(KEY_CURRENT_SESSION, session?.absolutePath).apply()
     }
 
     fun endpoint(context: Context): String =
@@ -44,6 +69,50 @@ object SessionRepository {
             .putString(KEY_TOKEN, token.trim())
             .putBoolean(KEY_KEEP_SPREAD, keepSpread)
             .apply()
+    }
+
+    fun listSessions(context: Context): List<File> {
+        return diaryRoot(context).listFiles()
+            ?.filter { it.isDirectory }
+            ?.sortedWith(compareByDescending<File> { it.lastModified() }.thenByDescending { it.name })
+            .orEmpty()
+    }
+
+    fun renameSession(context: Context, session: File, requestedName: String): File? {
+        if (!session.exists() || !session.isDirectory) return null
+        val cleaned = requestedName.trim()
+            .replace(Regex("[^A-Za-z0-9 _-]"), "")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        if (cleaned.isBlank()) return null
+
+        val root = diaryRoot(context)
+        var candidate = cleaned.replace(' ', '_')
+        if (candidate.isBlank()) return null
+
+        var target = File(root, candidate)
+        var suffix = 2
+        while (target.exists() && target.absolutePath != session.absolutePath) {
+            target = File(root, "${candidate}_$suffix")
+            suffix += 1
+        }
+        if (target.absolutePath == session.absolutePath) return session
+        if (!session.renameTo(target)) return null
+        if (currentSession(context)?.absolutePath == session.absolutePath) {
+            setCurrentSession(context, target)
+        }
+        return target
+    }
+
+    fun deleteSession(context: Context, session: File): Boolean {
+        val currentPath = currentSession(context)?.absolutePath
+        val deleted = session.deleteRecursively()
+        if (!deleted) return false
+        if (currentPath == session.absolutePath) {
+            val replacement = listSessions(context).firstOrNull()
+            setCurrentSession(context, replacement)
+        }
+        return true
     }
 
     /**
@@ -77,11 +146,67 @@ object SessionRepository {
         return ordered
     }
 
+    fun pageCount(session: File): Int = pageFiles(session).size
+
+    fun diaryLabel(session: File): String {
+        val stamp = Regex("diary_(\\d{8}_\\d{6})").find(session.name)?.groupValues?.getOrNull(1)
+            ?: return session.name.replace('_', ' ')
+        return try {
+            val parsed = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.UK).parse(stamp)
+                ?: return session.name.replace('_', ' ')
+            SimpleDateFormat("d MMM yyyy, HH:mm", Locale.UK).format(parsed)
+        } catch (_: Exception) {
+            session.name.replace('_', ' ')
+        }
+    }
+
+    /**
+     * Page filenames are never reused, even after a page has been deleted or reordered.
+     */
+    fun nextPageNumber(session: File): Int {
+        val maximumExistingPage = session.listFiles()
+            ?.asSequence()
+            ?.filter { it.isFile }
+            ?.mapNotNull(::pageNumberOrNull)
+            ?.maxOrNull()
+            ?: 0
+        val maximumPageReservedBySpreads = (nextSpreadNumber(session) - 1) * 2
+        return maxOf(maximumExistingPage, maximumPageReservedBySpreads) + 1
+    }
+
+    /**
+     * Original spread filenames are also never reused, preserving re-split source images.
+     */
+    fun nextSpreadNumber(session: File): Int {
+        val maximum = session.listFiles()
+            ?.asSequence()
+            ?.filter { it.isFile }
+            ?.mapNotNull { file ->
+                Regex("spread_(\\d{4})\\.jpg")
+                    .matchEntire(file.name)
+                    ?.groupValues
+                    ?.getOrNull(1)
+                    ?.toIntOrNull()
+            }
+            ?.maxOrNull()
+            ?: 0
+        return maximum + 1
+    }
+
+    fun latestSpreadFile(session: File): File? = session.listFiles()
+        ?.filter { it.isFile && it.name.matches(Regex("spread_\\d{4}\\.jpg")) }
+        ?.maxByOrNull { it.name }
+
     fun savePageOrder(session: File, pages: List<File>) {
         if (!session.exists()) return
         val target = orderFile(session)
         val temporary = File(session, "$ORDER_FILE_NAME.tmp")
-        temporary.writeText(pages.joinToString(separator = "\n", postfix = if (pages.isEmpty()) "" else "\n") { it.name })
+        temporary.writeText(
+            pages.joinToString(
+                separator = "\n",
+                postfix = if (pages.isEmpty()) "" else "\n"
+            ) { it.name }
+        )
         if (!temporary.renameTo(target)) {
             target.writeText(temporary.readText())
             temporary.delete()
@@ -96,11 +221,17 @@ object SessionRepository {
         return deletedImage
     }
 
-    fun pageNumber(file: File): Int =
-        Regex("page_(\\d{4})\\.jpg").find(file.name)?.groupValues?.get(1)?.toIntOrNull() ?: 0
+    fun pageNumber(file: File): Int = pageNumberOrNull(file) ?: 0
 
     fun transcriptFile(pageFile: File): File =
         File(pageFile.parentFile, pageFile.nameWithoutExtension + ".txt")
+
+    private fun pageNumberOrNull(file: File): Int? =
+        Regex("page_(\\d{4})\\.jpg")
+            .matchEntire(file.name)
+            ?.groupValues
+            ?.getOrNull(1)
+            ?.toIntOrNull()
 
     private fun orderFile(session: File): File = File(session, ORDER_FILE_NAME)
 

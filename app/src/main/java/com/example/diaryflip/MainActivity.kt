@@ -11,6 +11,7 @@ import android.os.Vibrator
 import android.view.Surface
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
@@ -45,6 +46,8 @@ class MainActivity : AppCompatActivity() {
     private var scanning = false
     private var sessionDirectory: File? = null
     private var capturedPages = 0
+    private var nextPageNumber = 1
+    private var nextSpreadNumber = 1
     private var lastFingerprint: DocumentFingerprint? = null
     private val captureInProgress = AtomicBoolean(false)
     private val tone by lazy { ToneGenerator(AudioManager.STREAM_NOTIFICATION, 65) }
@@ -72,23 +75,34 @@ class MainActivity : AppCompatActivity() {
         )
 
         binding.startStopButton.setOnClickListener {
-            if (scanning) finishScanning() else beginScanning()
+            if (scanning) stopScanning() else beginScanning()
         }
+        binding.newDiaryButton.setOnClickListener { requestNewDiary() }
         binding.settingsButton.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
         binding.reviewButton.setOnClickListener {
             startActivity(Intent(this, ReviewActivity::class.java))
         }
-        binding.lightButton.setOnClickListener {
-            toggleTorch()
+        binding.libraryButton.setOnClickListener {
+            startActivity(Intent(this, LibraryActivity::class.java))
         }
+        binding.lightButton.setOnClickListener { toggleTorch() }
         binding.lightButton.isEnabled = false
+
+        refreshCurrentDiarySummary()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             startCamera()
         } else {
             permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::binding.isInitialized && !scanning) {
+            refreshCurrentDiarySummary()
         }
     }
 
@@ -139,7 +153,9 @@ class MainActivity : AppCompatActivity() {
                     binding.lightButton.isEnabled = false
                     binding.lightButton.text = getString(R.string.light_unavailable)
                 }
-                binding.statusText.text = "Place both diary pages inside the guide"
+                if (!scanning) {
+                    binding.statusText.text = "Place both diary pages inside the guide"
+                }
             } catch (error: Exception) {
                 binding.statusText.text = "Could not start camera"
                 Toast.makeText(this, error.message ?: "Camera error", Toast.LENGTH_LONG).show()
@@ -147,23 +163,60 @@ class MainActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
+    /**
+     * Starts or resumes scanning in the current diary folder. It never creates a new diary unless
+     * there is no diary at all yet.
+     */
     private fun beginScanning() {
         if (imageCapture == null) {
             Toast.makeText(this, "Camera is still starting.", Toast.LENGTH_SHORT).show()
             return
         }
 
-        sessionDirectory = SessionRepository.startNewSession(this)
-        capturedPages = 0
-        lastFingerprint = null
+        val session = SessionRepository.getOrCreateCurrentSession(this)
+        sessionDirectory = session
+        capturedPages = SessionRepository.pageCount(session)
+        nextPageNumber = SessionRepository.nextPageNumber(session)
+        nextSpreadNumber = SessionRepository.nextSpreadNumber(session)
         scanning = true
         captureInProgress.set(false)
-        analyzer.setEnabled(true)
+        analyzer.setEnabled(false)
 
         binding.startStopButton.text = getString(R.string.stop_scanning)
         binding.settingsButton.isEnabled = false
-        binding.pageCountText.text = "0 pages"
-        binding.statusText.text = "Hold the first spread still"
+        binding.reviewButton.isEnabled = false
+        binding.libraryButton.isEnabled = false
+        binding.newDiaryButton.isEnabled = false
+        binding.pageCountText.text = pageCountLabel(capturedPages)
+        binding.currentDiaryText.text = currentDiaryLabel(session)
+        binding.statusText.text = if (capturedPages == 0) {
+            "Preparing first spread…"
+        } else {
+            "Preparing to continue this diary…"
+        }
+
+        // Loading the final spread fingerprint prevents an unchanged spread being captured again
+        // when scanning is stopped and later resumed.
+        val latestSpread = SessionRepository.latestSpreadFile(session)
+        processingExecutor.execute {
+            val fingerprint = try {
+                latestSpread?.let(ImageSplitter::fingerprintSpread)
+            } catch (_: Exception) {
+                null
+            }
+            runOnUiThread {
+                if (!scanning || sessionDirectory?.absolutePath != session.absolutePath) {
+                    return@runOnUiThread
+                }
+                lastFingerprint = fingerprint
+                analyzer.setEnabled(true)
+                binding.statusText.text = if (capturedPages == 0) {
+                    "Hold the first spread still"
+                } else {
+                    "Continue scanning — hold the next spread still"
+                }
+            }
+        }
 
         if (SessionRepository.endpoint(this).isBlank()) {
             Toast.makeText(
@@ -174,20 +227,62 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun finishScanning() {
+    /** Stops camera analysis but keeps the same diary selected for the next Start tap. */
+    private fun stopScanning() {
         scanning = false
         analyzer.setEnabled(false)
         setTorch(false)
         binding.startStopButton.text = getString(R.string.start_scanning)
         binding.settingsButton.isEnabled = true
+        binding.reviewButton.isEnabled = true
+        binding.libraryButton.isEnabled = true
+        binding.newDiaryButton.isEnabled = true
         binding.statusText.text = if (capturedPages == 0) {
-            "No pages captured"
+            "Scanning stopped — this diary is still empty"
         } else {
-            "Finished — $capturedPages pages saved"
+            "Scanning stopped — ${pageCountLabel(capturedPages)} saved in this diary"
+        }
+        sessionDirectory?.let {
+            binding.currentDiaryText.text = currentDiaryLabel(it)
         }
         if (capturedPages > 0) {
             tone.startTone(ToneGenerator.TONE_PROP_ACK, 120)
         }
+    }
+
+    private fun requestNewDiary() {
+        if (scanning) return
+        val current = SessionRepository.currentSession(this)
+        val existingPages = current?.let(SessionRepository::pageCount) ?: 0
+
+        if (current == null || existingPages == 0) {
+            createNewDiary()
+            return
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Start a new diary?")
+            .setMessage(
+                "Your current diary and its ${pageCountLabel(existingPages)} will be kept. " +
+                    "Future scans will go into a new folder."
+            )
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("New diary") { _, _ -> createNewDiary() }
+            .show()
+    }
+
+    private fun createNewDiary() {
+        val newSession = SessionRepository.startNewSession(this)
+        sessionDirectory = newSession
+        capturedPages = 0
+        nextPageNumber = 1
+        nextSpreadNumber = 1
+        lastFingerprint = null
+        captureInProgress.set(false)
+        binding.pageCountText.text = pageCountLabel(0)
+        binding.currentDiaryText.text = currentDiaryLabel(newSession)
+        binding.statusText.text = "New diary ready — tap Start scanning"
+        Toast.makeText(this, "New diary created", Toast.LENGTH_SHORT).show()
     }
 
     private fun captureSpread() {
@@ -201,7 +296,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.statusText.text = "Capturing…"
-        val spreadNumber = capturedPages / 2 + 1
+        val spreadNumber = nextSpreadNumber
         val spreadFile = File(session, "spread_${spreadNumber.toString().padStart(4, '0')}.jpg")
         val options = ImageCapture.OutputFileOptions.Builder(spreadFile).build()
 
@@ -210,9 +305,7 @@ class MainActivity : AppCompatActivity() {
             cameraExecutor,
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    processingExecutor.execute {
-                        processCapturedSpread(spreadFile)
-                    }
+                    processingExecutor.execute { processCapturedSpread(spreadFile) }
                 }
 
                 override fun onError(exception: ImageCaptureException) {
@@ -230,7 +323,7 @@ class MainActivity : AppCompatActivity() {
     private fun processCapturedSpread(spreadFile: File) {
         val session = sessionDirectory ?: return failCapture("Session unavailable")
         try {
-            val leftNumber = capturedPages + 1
+            val leftNumber = nextPageNumber
             val result = ImageSplitter.splitSpread(
                 spreadFile = spreadFile,
                 outputDirectory = session,
@@ -252,7 +345,9 @@ class MainActivity : AppCompatActivity() {
             }
 
             lastFingerprint = result.fingerprint
-            capturedPages += 2
+            nextPageNumber += 2
+            nextSpreadNumber += 1
+            capturedPages = SessionRepository.pageCount(session)
             val endpoint = SessionRepository.endpoint(this)
             val token = SessionRepository.token(this)
             TranscriptionWorker.enqueue(this, result.leftPage, leftNumber, endpoint, token)
@@ -261,8 +356,13 @@ class MainActivity : AppCompatActivity() {
             captureInProgress.set(false)
             analyzer.captureCompleted(true)
             runOnUiThread {
-                binding.pageCountText.text = "$capturedPages pages"
-                binding.statusText.text = "Next page ✓"
+                binding.pageCountText.text = pageCountLabel(capturedPages)
+                binding.currentDiaryText.text = currentDiaryLabel(session)
+                binding.statusText.text = if (scanning) {
+                    "Next page ✓"
+                } else {
+                    "Scanning stopped — ${pageCountLabel(capturedPages)} saved in this diary"
+                }
                 acknowledgeCapture()
             }
         } catch (error: Exception) {
@@ -275,10 +375,34 @@ class MainActivity : AppCompatActivity() {
         captureInProgress.set(false)
         analyzer.captureCompleted(false)
         runOnUiThread {
-            binding.statusText.text = "Try again — hold the diary still"
+            binding.statusText.text = if (scanning) {
+                "Try again — hold the diary still"
+            } else {
+                "Scanning stopped"
+            }
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
         }
     }
+
+    private fun refreshCurrentDiarySummary() {
+        val current = SessionRepository.currentSession(this)
+        sessionDirectory = current
+        capturedPages = current?.let(SessionRepository::pageCount) ?: 0
+        nextPageNumber = current?.let(SessionRepository::nextPageNumber) ?: 1
+        nextSpreadNumber = current?.let(SessionRepository::nextSpreadNumber) ?: 1
+        binding.pageCountText.text = pageCountLabel(capturedPages)
+        binding.currentDiaryText.text = if (current == null) {
+            "No diary yet — Start scanning or tap New diary"
+        } else {
+            currentDiaryLabel(current)
+        }
+    }
+
+    private fun currentDiaryLabel(session: File): String =
+        "Current diary: ${SessionRepository.diaryLabel(session)} — Start/Stop keeps using this diary"
+
+    private fun pageCountLabel(count: Int): String =
+        if (count == 1) "1 page" else "$count pages"
 
     private fun acknowledgeCapture() {
         tone.startTone(ToneGenerator.TONE_PROP_BEEP, 90)
@@ -338,10 +462,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         setTorch(false)
-        super.onDestroy()
         analyzer.setEnabled(false)
         cameraExecutor.shutdown()
         processingExecutor.shutdown()
         tone.release()
+        super.onDestroy()
     }
 }

@@ -63,6 +63,16 @@ object ImageSplitter {
         return result
     }
 
+
+    fun fingerprintSpread(spreadFile: File): DocumentFingerprint {
+        val bitmap = loadOrientedBitmap(spreadFile)
+        return try {
+            DocumentFingerprint.from(bitmap)
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
     fun loadOrientedBitmap(file: File): Bitmap {
         val raw = BitmapFactory.decodeFile(file.absolutePath)
             ?: error("Could not decode captured image")

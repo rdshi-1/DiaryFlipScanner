@@ -1,3 +1,12 @@
+
+## Diary sessions
+
+- **Start scanning** begins or resumes the currently selected diary.
+- **Stop scanning** pauses capture; tapping Start again continues in the same diary folder.
+- All later scans, page images, original spreads and transcripts remain in that folder.
+- **New diary** is the only action that creates and selects a different diary folder.
+- Starting a new diary does not delete the previous diary.
+
 # DiaryFlip — hands-free handwritten diary scanner
 
 DiaryFlip is an Android MVP designed around one interaction: mount the phone above an open diary, tap **Start scanning**, and turn the pages. The app detects a page turn, waits for the new spread to stop moving and become sharp, captures it automatically, splits it into left and right page images, and vibrates once when it is safe to turn the next page.

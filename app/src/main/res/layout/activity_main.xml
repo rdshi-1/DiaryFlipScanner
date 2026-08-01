@@ -21,79 +21,131 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:gravity="center_vertical"
-        android:background="#66000000">
+        android:background="#66000000"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/statusText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Place both diary pages inside the guide"
+                android:textColor="@color/white"
+                android:textSize="20sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/pageCountText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingStart="16dp"
+                android:text="0 pages"
+                android:textColor="@color/white"
+                android:textSize="18sp" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/statusText"
-            android:layout_width="0dp"
+            android:id="@+id/currentDiaryText"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Place both diary pages inside the guide"
-            android:textColor="@color/white"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:id="@+id/pageCountText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0 pages"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            android:paddingStart="16dp" />
+            android:layout_marginTop="6dp"
+            android:text="Current diary — scans remain together until New diary"
+            android:textColor="#DDFFFFFF"
+            android:textSize="14sp" />
     </LinearLayout>
 
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:orientation="horizontal"
+        android:layout_gravity="bottom"
+        android:background="#77000000"
         android:gravity="center"
-        android:padding="18dp"
-        android:background="#66000000">
+        android:orientation="vertical"
+        android:padding="14dp">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/settingsButton"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/settings"
-            android:textColor="@color/white"
-            app:strokeColor="@color/white" />
+            android:gravity="center"
+            android:orientation="horizontal">
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/startStopButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="18dp"
-            android:minWidth="180dp"
-            android:text="@string/start_scanning"
-            android:textSize="18sp"
-            app:backgroundTint="@color/diary_green" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/startStopButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:maxWidth="280dp"
+                android:minWidth="180dp"
+                android:text="@string/start_scanning"
+                android:textSize="18sp"
+                app:backgroundTint="@color/diary_green" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/reviewButton"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/review"
-            android:textColor="@color/white"
-            app:strokeColor="@color/white" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/lightButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:checkable="true"
+                android:minWidth="96dp"
+                android:text="@string/light_off"
+                android:textColor="@color/white"
+                app:strokeColor="@color/white" />
+        </LinearLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/lightButton"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:checkable="true"
-            android:minWidth="96dp"
-            android:text="@string/light_off"
-            android:textColor="@color/white"
-            app:strokeColor="@color/white" />
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/newDiaryButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/new_diary"
+                android:textColor="@color/white"
+                app:strokeColor="@color/white" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/libraryButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/library"
+                android:textColor="@color/white"
+                app:strokeColor="@color/white" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/reviewButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/review"
+                android:textColor="@color/white"
+                app:strokeColor="@color/white" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/settingsButton"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:text="@string/settings"
+                android:textColor="@color/white"
+                app:strokeColor="@color/white" />
+        </LinearLayout>
     </LinearLayout>
 
 </FrameLayout>

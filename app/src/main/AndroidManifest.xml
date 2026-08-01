@@ -15,6 +15,12 @@
         android:theme="@style/Theme.DiaryFlip"
         android:usesCleartextTraffic="true">
 
+
+        <activity
+            android:name=".LibraryActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+
         <activity
             android:name=".ReviewActivity"
             android:exported="false"
